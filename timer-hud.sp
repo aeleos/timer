@@ -49,6 +49,7 @@ new Float:g_flClientAvgSync[MAXPLAYERS + 1];
 new Float:g_flClientAvgSync1[MAXPLAYERS + 1];
 new g_nClientStrafeCount[MAXPLAYERS + 1];
 new Float:fClientCurrentSpeed[MAXPLAYERS];
+new Bool:g_bHudSwitch;
 public Plugin:myinfo = 
 {
 	name = "[Timer] HUD", 
@@ -95,6 +96,7 @@ public OnMapStart()
 	if (GetEngineVersion() == Engine_CSGO)
 	{
 		CreateTimer(0.1, HUDTimer_CSGO, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
+		CreateTimer(2.0, HudSwitch, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 	}
 	
 	
@@ -103,7 +105,14 @@ public OnMapStart()
 }
 
 
-
+public Action:HudSwitch(Handle:timer)
+{
+	if(g_bHudSwitch == true){
+		g_bHudSwitch = false;
+	} else {
+		g_bHudSwitch = true;
+	}
+}
 
 
 
@@ -201,7 +210,13 @@ CalculateSync(client)
 }
 
 
-
+map( x, in_min, in_max, out_min, out_max)
+{
+  if (x > in_max){
+  	return out_max;
+ }
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 
 UpdateHUD_CSGO(client)
 {
@@ -267,10 +282,10 @@ UpdateHUD_CSGO(client)
 	{
 		Timer_GetClientTimer(iClientToShow, bEnabled, fClientCurrentTime, iClientJumps, iFPSMax);
 		Timer_SecondsToTime(fClientCurrentTime, sClientCurrentTime, 32, 1);
-		if (!Timer_GetBestRoundFast(iClientToShow, iStyle, iTrack, fClientRecordTime, iClientJumps))
+		if (!Timer_GetBestRound(iClientToShow, iStyle, iTrack, fClientRecordTime, iClientJumps))
 			fClientRecordTime = 0.0;
 		Timer_SecondsToTime(fClientRecordTime, sClientRecordTime, 32, 2);
-		iClientRank = Timer_GetStyleRankFast(iClientToShow, iTrack, iStyle);
+		iClientRank = Timer_GetStyleRank(iClientToShow, iTrack, iStyle);
 	}
 	else
 	{
@@ -316,34 +331,70 @@ UpdateHUD_CSGO(client)
 	
 	if (IsFakeClient(iClientToShow))
 	{
-		Format(centerText, sizeof(centerText), "%s Time: <font color='#6666FF'>%s</font>", centerText, sClientCurrentTime);
+		Format(centerText, sizeof(centerText), "%s Time:      <font color='#6666FF'>%s</font>		Style: %s", centerText, sClientCurrentTime, g_Physics[iStyle][StyleName]);
 	}
 	else if (Timer_GetPauseStatus(iClientToShow))
 	{
-		Format(centerText, sizeof(centerText), "%s Time: <font color='FF8A00'>Paused</font>", centerText);
+		Format(centerText, sizeof(centerText), "%s Time:      <font color='#FFA700'>Paused</font>		Style: %s", centerText, g_Physics[iStyle][StyleName]);
 	}
 	else if (bEnabled)
 	{
-		if (fWRTime == 0.0 || fWRTime > fClientCurrentTime)
+		if (fWRTime == 0.0){
+			Format(centerText, sizeof(centerText), "%s Time:      <font color='#008744'>%s</font>		Style: %s", centerText, sClientCurrentTime, g_Physics[iStyle][StyleName]);
+		} 
+		else if (fWRTime > fClientCurrentTime)
 		{
-			Format(centerText, sizeof(centerText), "%s Time: <font color='#00ff00'>%s</font>", centerText, sClientCurrentTime);
+			//Format(centerText, sizeof(centerText), "%s Time:      <font color='#008744'>%s</font>		Style: %s", centerText, sClientCurrentTime, g_Physics[iStyle][StyleName]);
+			new GreenR, GreenG, GreenB, RedR, RedG, RedB, NewR, NewG, NewB;
+			GreenR = 0;
+			GreenG = 135;
+			GreenB = 68;
+			RedR = 214;
+			RedG = 45;
+			RedB = 32;
+			NewB = map(RoundFloat(fClientCurrentTime), 0, RoundFloat(fWRTime), GreenB, RedB);
+		
+			NewR = map(RoundFloat(fClientCurrentTime), 0, RoundFloat(fWRTime / 2), GreenR, RedR);
+			//Format(centerText, sizeof(centerText), "%s Time:      <font color='#%02X%02X%02X'>%s</font>		Style: %s", centerText, NewR, GreenG, NewB, sClientCurrentTime, g_Physics[iStyle][StyleName]);
+			if ((fWRTime / 2) < fClientCurrentTime){
+				NewG = map(RoundFloat(fClientCurrentTime), RoundFloat(fWRTime / 2), RoundFloat(fWRTime), GreenG, RedG);
+				//Format(centerText, sizeof(centerText), "%s Time:      <font color='#%02X%02X%02X'>%s</font>		Style: %s", centerText, NewR, NewG, NewB, sClientCurrentTime, g_Physics[iStyle][StyleName]);
+			}
+			else {
+				NewG = GreenG;
+			}
+			//PrintToChatAll("%02X%02X%02X", NewR, NewG, NewB);
+			//NewR = map(RoundFloat(fClientCurrentTime), 0, RoundFloat(fWRTime), GreenR, RedR);
+			//NewG = map(RoundFloat(fClientCurrentTime), 0, RoundFloat(fWRTime), GreenG, RedG);
+			//NewB = map(RoundFloat(fClientCurrentTime), 0, RoundFloat(fWRTime), GreenB, RedB);
+			Format(centerText, sizeof(centerText), "%s Time:      <font color='#%02X%02X%02X'>%s</font>		Style: %s", centerText, NewR, NewG, NewB, sClientCurrentTime, g_Physics[iStyle][StyleName]);
 		}
 		else
 		{
-			Format(centerText, sizeof(centerText), "%s Time: <font color='#ff0000'>%s</font>", centerText, sClientCurrentTime);
+			Format(centerText, sizeof(centerText), "%s Time:      <font color='#d62d20'>%s</font>		Style: %s", centerText, sClientCurrentTime, g_Physics[iStyle][StyleName]);
 		}
 	}
 	else
 	{
-		Format(centerText, sizeof(centerText), "%s Time: <font color='#ff0000'>Stopped</font>", centerText);
+		//Format(centerText, sizeof(centerText), "%s Time: <font color='#ff0000'>Stopped</font>", centerText);
 		g_nClientStrafeCount[iClientToShow] = 1;
 		g_flClientAvgSync1[iClientToShow] = 1.0;
 		g_flClientAvgSync[iClientToShow] = 1.0;
+		if(g_bHudSwitch){
+			Format(centerText, sizeof(centerText), "%s Record: <font color='#0057e7'>%s</font>		Style: %s", centerText, sWRTime, g_Physics[iStyle][StyleName]);
+		} else {
+			if (fClientRecordTime == 0.0){
+				Format(centerText, sizeof(centerText), "%s PB:          <font color='#4C89EE'>%s</font>	Style: %s", centerText, sClientRecordTime, g_Physics[iStyle][StyleName]);
+			} else {
+				Format(centerText, sizeof(centerText), "%s PB:          <font color='#4C89EE'>%s</font>		Style: %s", centerText, sClientRecordTime, g_Physics[iStyle][StyleName]);
+			}
+		}
 	}
 	
-	Format(centerText, sizeof(centerText), "%s		Style: %s", centerText, g_Physics[iStyle][StyleName]);
+	//Format(centerText, sizeof(centerText), "%s		Style: %s", centerText, g_Physics[iStyle][StyleName]);
 	
 	Format(centerText, sizeof(centerText), "%s\n", centerText);
+	/*
 	if (IsFakeClient(iClientToShow))
 	{
 		Format(centerText, sizeof(centerText), "%s Record: %s", centerText, sWRTime);
@@ -352,22 +403,23 @@ UpdateHUD_CSGO(client)
 	{
 		Format(centerText, sizeof(centerText), "%s Record: %s", centerText, sClientRecordTime);
 	}
+	*/
 	
 	if (g_iButtonsPressed[iClientToShow] & IN_FORWARD)
-		Format(centerText, sizeof(centerText), "%s	   W", centerText);
+		Format(centerText, sizeof(centerText), "%s		         W", centerText);
 	else
-		Format(centerText, sizeof(centerText), "%s	    _", centerText);
+		Format(centerText, sizeof(centerText), "%s		          _", centerText);
 	
 	if (g_flClientAvgSync[iClientToShow] == 0.0)
 		g_flClientAvgSync[iClientToShow] = 1.0;
-	Format(centerText, sizeof(centerText), "%s	Sync: %.1f", centerText, g_flClientAvgSync[iClientToShow] * 100);
+	Format(centerText, sizeof(centerText), "%s	Sync: %.1f%", centerText, g_flClientAvgSync[iClientToShow] * 100);
 	Format(centerText, sizeof(centerText), "%s\n", centerText);
 	
 	
 	
-	Format(centerText, sizeof(centerText), "%s LG		", centerText);
+	Format(centerText, sizeof(centerText), "%s Alpha      ", centerText);
 	if (g_iButtonsPressed[iClientToShow] & IN_DUCK)
-		Format(centerText, sizeof(centerText), "%sDUCK ", centerText);
+		Format(centerText, sizeof(centerText), "%sDuck ", centerText);
 	else
 		Format(centerText, sizeof(centerText), "%s _____ ", centerText);
 	
@@ -394,7 +446,7 @@ UpdateHUD_CSGO(client)
 	
 	
 	
-	Format(centerText, sizeof(centerText), "%sSpeed: %5.2f", centerText, fClientCurrentSpeed[iClientToShow]);
+	Format(centerText, sizeof(centerText), "%s	Speed: %5.2f", centerText, fClientCurrentSpeed[iClientToShow]);
 	
 
 	PrintHintText(client, centerText);
