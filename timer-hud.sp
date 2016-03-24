@@ -218,35 +218,6 @@ map( x, in_min, in_max, out_min, out_max)
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-CalcSpecs(client){
-	int speccount = 0;
-	for(int j = 1; j <= MaxClients; j++) 
-	{
-		if(!IsClientInGame(j) || !IsClientObserver(j))
-			continue;
-		
-		if(IsClientSourceTV(j))
-			continue;
-			
-		int iSpecMode = GetEntProp(j, Prop_Send, "m_iObserverMode");
-		
-		// The client isn't spectating any one person, so ignore them.
-		if(iSpecMode != SPECMODE_FIRSTPERSON && iSpecMode != SPECMODE_3RDPERSON)
-			continue;
-		
-		// Find out who the client is spectating.
-		int iTarget = GetEntPropEnt(j, Prop_Send, "m_hObserverTarget");
-		
-		// Are they spectating the same player as User?
-		if(iTarget == client && !hidemyass[j])
-		{
-			speccount++;
-		}
-	}
-	return speccount;
-}	
-
-
 UpdateHUD_CSGO(client)
 {
 	if (!IsClientInGame(client))
@@ -434,12 +405,10 @@ UpdateHUD_CSGO(client)
 	}
 	*/
 	
-	Format(centerText, sizeof(centerText), "%s Spec: %d", centerText, CalcSpecs(iClientToShow));
-	
 	if (g_iButtonsPressed[iClientToShow] & IN_FORWARD)
-		Format(centerText, sizeof(centerText), "%s		W", centerText);
+		Format(centerText, sizeof(centerText), "%s		         W", centerText);
 	else
-		Format(centerText, sizeof(centerText), "%s		 _", centerText);
+		Format(centerText, sizeof(centerText), "%s		          _", centerText);
 	
 	if (g_flClientAvgSync[iClientToShow] == 0.0)
 		g_flClientAvgSync[iClientToShow] = 1.0;
